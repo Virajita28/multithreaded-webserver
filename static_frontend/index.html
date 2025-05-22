@@ -1,0 +1,121 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BlitzServer Control Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f9fafb;
+    }
+    .log-box {
+      background: #111827;
+      color: #d1d5db;
+      font-family: monospace;
+      font-size: 0.85rem;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      overflow-y: scroll;
+      height: 200px;
+    }
+  </style>
+</head>
+<body class="text-gray-800">
+  <div class="max-w-4xl mx-auto px-6 py-10">
+    <h1 class="text-3xl font-bold mb-6 text-center text-blue-700">🖥️ BlitzServer Dashboard</h1>
+
+    <!-- Upload Section -->
+    <div class="bg-white p-6 rounded-xl shadow mb-6">
+      <h2 class="text-xl font-semibold mb-4">📤 Upload a File</h2>
+      <form id="uploadForm" class="space-y-4">
+        <input type="file" id="fileInput" class="block w-full border rounded px-4 py-2" />
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded">
+          Upload
+        </button>
+      </form>
+      <p id="uploadStatus" class="text-sm text-green-600 mt-3"></p>
+    </div>
+
+    <!-- Download Section -->
+    <div class="bg-white p-6 rounded-xl shadow mb-6">
+      <h2 class="text-xl font-semibold mb-4">📥 Download a File</h2>
+      <div class="flex space-x-4">
+        <input type="text" id="downloadFile" placeholder="e.g. video.mp4" class="flex-1 border px-4 py-2 rounded" />
+        <button onclick="downloadFile()" class="bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-2 rounded">
+          Download
+        </button>
+      </div>
+    </div>
+
+    <!-- Logs Section -->
+    <div class="bg-white p-6 rounded-xl shadow">
+      <h2 class="text-xl font-semibold mb-4">📄 Access Logs</h2>
+      <div class="log-box" id="logBox">
+        <!-- Logs will be shown here (later via WebSocket or AJAX) -->
+        Loading log file...
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Upload handler
+    const uploadForm = document.getElementById("uploadForm");
+    const fileInput = document.getElementById("fileInput");
+    const uploadStatus = document.getElementById("uploadStatus");
+
+    uploadForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      fetch(`/${file.name}`, {
+        method: "POST",
+        body: file
+      }).then(res => {
+        if (res.status === 201) {
+          uploadStatus.textContent = "✅ Upload successful!";
+        } else {
+          uploadStatus.textContent = "⚠️ Upload failed.";
+        }
+      }).catch(() => {
+        uploadStatus.textContent = "❌ Error connecting to server.";
+      });
+    });
+
+    // Download handler
+    function downloadFile() {
+      const filename = document.getElementById("downloadFile").value;
+      if (!filename) return;
+      window.open(`/${filename}`, "_blank");
+    }
+
+    // Load logs (simulated for now — static file)
+    fetch("/server.log").then(res => res.text()).then(data => {
+      document.getElementById("logBox").textContent = data;
+    }).catch(() => {
+      document.getElementById("logBox").textContent = "⚠️ Could not load logs.";
+    });
+  </script>
+</body>
+</html>
+
+
+
+
+
+<!-- CXX = g++
+CXXFLAGS = -std=c++11 -pthread
+SRCS = main.cpp Server.cpp Handler.cpp Utils.cpp
+OBJS = $(SRCS:.cpp=.o)
+TARGET = webserver
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+clean:
+	rm -f *.o $(TARGET) -->

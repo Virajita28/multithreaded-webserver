@@ -1,0 +1,272 @@
+// main.cpp
+#include "Server.hpp"
+
+int main() {
+    Server server(8080);
+    server.start();
+    return 0;
+}
+
+
+
+
+// Server.hpp (Alice)
+#ifndef SERVER_HPP
+#define SERVER_HPP
+
+class Server {
+public:
+    Server(int port);
+    void start();
+
+private:
+    int port;
+    int server_fd;
+
+    void setup_socket();
+    void accept_clients();
+};
+
+#endif
+
+
+
+
+// Server.cpp (Alice)
+#include "Server.hpp"
+#include "Handler.hpp"
+#include "Utils.hpp"
+#include <iostream>
+#include <thread>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <cstring>
+
+Server::Server(int port) : port(port), server_fd(0) {}
+
+void Server::setup_socket() {
+    server_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_fd == 0) {
+        log("Socket creation failed.");
+        exit(EXIT_FAILURE);
+    }
+
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(port);
+
+    if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
+        log("Bind failed.");
+        exit(EXIT_FAILURE);
+    }
+
+    if (listen(server_fd, 10) < 0) {
+        log("Listen failed.");
+        exit(EXIT_FAILURE);
+    }
+
+    log("Server listening on port " + std::to_string(port));
+}
+
+void Server::accept_clients() {
+    sockaddr_in client_address;
+    socklen_t addr_len = sizeof(client_address);
+
+    while (true) {
+        int client_socket = accept(server_fd, (struct sockaddr*)&client_address, &addr_len);
+        if (client_socket >= 0) {
+            std::thread(handle_client, client_socket).detach();
+        } else {
+            log("Accept failed.");
+        }
+    }
+}
+
+void Server::start() {
+    setup_socket();
+    accept_clients();
+}
+
+
+
+
+// Handler.hpp (Bob)
+#ifndef HANDLER_HPP
+#define HANDLER_HPP
+
+void handle_client(int client_socket);
+
+#endif
+
+
+
+
+
+// Handler.cpp (Bob)
+#include "Handler.hpp"
+#include "Utils.hpp"
+#include <fstream>
+#include <sstream>
+#include <unistd.h>
+#include <string>
+#include <iostream>
+
+std::string get_http_request(int socket) {
+    char buffer[2048];
+    int bytes_received = recv(socket, buffer, sizeof(buffer) - 1, 0);
+    if (bytes_received <= 0) return "";
+    buffer[bytes_received] = '\0';
+    return std::string(buffer);
+}
+
+std::string extract_path(const std::string& request) {
+    std::istringstream req_stream(request);
+    std::string method, path;
+    req_stream >> method >> path;
+    if (path == "/") return "/index.html";
+    return path;
+}
+
+std::string build_response(const std::string& body, const std::string& content_type) {
+    std::ostringstream oss;
+    oss << "HTTP/1.1 200 OK\r\n"
+        << "Content-Type: " << content_type << "\r\n"
+        << "Content-Length: " << body.size() << "\r\n"
+        << "Connection: close\r\n"
+        << "\r\n" << body;
+    return oss.str();
+}
+
+std::string build_404_response() {
+    std::string body = "<html><body><h1>404 Not Found</h1></body></html>";
+    std::ostringstream oss;
+    oss << "HTTP/1.1 404 Not Found\r\n"
+        << "Content-Type: text/html\r\n"
+        << "Content-Length: " << body.size() << "\r\n"
+        << "\r\n" << body;
+    return oss.str();
+}
+
+std::string get_content_type(const std::string& path) {
+    if (path.find(".html") != std::string::npos) return "text/html";
+    if (path.find(".css") != std::string::npos) return "text/css";
+    if (path.find(".js") != std::string::npos) return "application/javascript";
+    return "text/plain";
+}
+
+void handle_client(int client_socket) {
+    std::string request = get_http_request(client_socket);
+    if (request.empty()) {
+        close(client_socket);
+        return;
+    }
+
+    std::string path = extract_path(request);
+    std::string filepath = "static" + path;
+    std::ifstream file(filepath);
+
+    if (file.good()) {
+        std::ostringstream buffer;
+        buffer << file.rdbuf();
+        std::string body = buffer.str();
+        std::string content_type = get_content_type(filepath);
+        std::string response = build_response(body, content_type);
+        send(client_socket, response.c_str(), response.size(), 0);
+        log("200 OK: " + path);
+    } else {
+        std::string response = build_404_response();
+        send(client_socket, response.c_str(), response.size(), 0);
+        log("404 Not Found: " + path);
+    }
+
+    close(client_socket);
+}
+
+
+
+
+// Utils.hpp (Charlie)
+#ifndef UTILS_HPP
+#define UTILS_HPP
+
+#include <string>
+void log(const std::string& message);
+
+#endif
+
+
+
+
+// Utils.cpp (Charlie)
+#include "Utils.hpp"
+#include <iostream>
+#include <ctime>
+
+void log(const std::string& message) {
+    std::time_t now = std::time(nullptr);
+    char* dt = std::ctime(&now);
+    dt[strlen(dt) - 1] = '\0'; // remove newline
+    std::cout << "[" << dt << "] " << message << std::endl;
+}
+
+
+
+
+// Utils.cpp (Charlie)
+#include "Utils.hpp"
+#include <iostream>
+#include <ctime>
+
+void log(const std::string& message) {
+    std::time_t now = std::time(nullptr);
+    char* dt = std::ctime(&now);
+    dt[strlen(dt) - 1] = '\0'; // remove newline
+    std::cout << "[" << dt << "] " << message << std::endl;
+}
+
+
+
+
+<!-- index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>C++ Web Server</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            text-align: center;
+            margin-top: 10%;
+            background: linear-gradient(to bottom, #eef, #ddf);
+        }
+        h1 {
+            color: #333;
+        }
+        p {
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to the Multithreaded Web Server</h1>
+    <p>Built with ❤️ by Alice, Bob, and Charlie.</p>
+</body>
+</html>
+
+
+
+
+CXX = g++
+CXXFLAGS = -std=c++11 -pthread
+SRCS = main.cpp Server.cpp Handler.cpp Utils.cpp
+OBJS = $(SRCS:.cpp=.o)
+TARGET = webserver
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+clean:
+	rm -f *.o $(TARGET)

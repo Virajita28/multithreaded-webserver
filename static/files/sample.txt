@@ -1,0 +1,2 @@
+This is a sample file on the multithreaded web server.
+You can download this file to verify the server's file-serving functionality.

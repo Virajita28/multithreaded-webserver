@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/833/833472.png" type="image/png">
+  <title>📂 Blitz Web Server</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    html {
+  scroll-behavior: smooth;
+}
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: url('https://wallpaperaccess.com/full/329583.jpg') no-repeat center center fixed;
+      background-size: cover;
+      color: #fff;
+      text-align: center;
+      overflow-x: hidden;
+    }
+
+    /* Intro screen */
+    #intro {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      flex-direction: column;
+      opacity: 1;
+      transition: opacity 1s ease;
+    }
+
+    #intro h1 {
+      font-size: 3.5em;
+      animation: pulse 1.5s infinite;
+      cursor: pointer;
+      user-select: none;
+      text-shadow: 0 0 20px #00ffcc, 0 0 40px #00ffcc;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+
+    #mainContent {
+      opacity: 0;
+      transition: opacity 1s ease;
+      pointer-events: none;
+    }
+
+    #mainContent.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    h1 {
+      margin-top: 50px;
+      font-size: 2.8em;
+      text-shadow: 2px 2px 4px #000;
+    }
+
+    .box {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      padding: 40px;
+      margin: 40px auto;
+      border-radius: 20px;
+      max-width: 650px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
+      color: #fff;
+    }
+
+    .box h2 {
+      margin: 25px 0 10px;
+      font-size: 1.4em;
+      text-align: left;
+    }
+
+    .form-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .form-row input[type="file"],
+    .form-row input[type="text"] {
+      flex: 1;
+      min-width: 240px;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
+
+    .form-row button {
+  padding: 12px 24px;
+  font-size: 1em;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #008080, #5f9ea0); /* Teal to Cadet Blue */
+  color: #f0f0f0;
+  font-weight: bold;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 128, 128, 0.3);
+}
+
+.form-row button:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 6px 18px rgba(0, 128, 128, 0.5);
+  background: linear-gradient(135deg, #5f9ea0, #008080);
+}
+
+
+    #status, .file-list {
+      margin-top: 30px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 12px 25px;
+      border-radius: 15px;
+      display: inline-block;
+      text-shadow: 1px 1px 2px #000;
+    }
+
+    .file-list button {
+      margin-left: 10px;
+      margin-top: 5px;
+      border: none;
+      background: #00ffcc;
+      color: #000;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+
+    .file-list {
+      display: none;
+    }
+
+    .file-list button:hover {
+  transform: scale(1.05);
+  background: #00c2ff;
+  color: #fff;
+}
+
+
+    footer {
+      margin-top: 60px;
+      font-size: 0.95em;
+      color: #ddd;
+      text-shadow: 1px 1px 3px #000;
+    }
+
+    footer button {
+      margin: 5px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 25px;
+      background: linear-gradient(to right, #00c6ff, #0072ff);
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.9em;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    footer button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 10px rgba(0, 198, 255, 0.6);
+    }
+
+    /* Help Modal */
+    #helpModal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(15, 15, 15, 0.98);
+      overflow-y: auto;
+      color: #f0f0f0;
+      z-index: 9999;
+      display: none;
+      padding: 3rem 2rem;
+    }
+
+    #helpModal h1 {
+      color: #00f5d4;
+      font-size: 2.4em;
+      text-shadow: 1px 1px 4px #000;
+    }
+
+    #helpModal h2 {
+      color: #72f0e2;
+      margin-top: 2rem;
+      border-bottom: 2px solid #00f5d4;
+      padding-bottom: 5px;
+    }
+
+    #helpModal ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    #helpModal ul li::before {
+      content: "✔️ ";
+      margin-right: 0.5rem;
+      color: #00f5d4;
+    }
+
+    #helpModal .section {
+      margin-bottom: 2rem;
+      padding: 1.2rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-left: 4px solid #00f5d4;
+      border-radius: 10px;
+    }
+
+    #helpModal code {
+      background: #222;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: #00f5d4;
+    }
+
+    #helpModal .close-btn {
+      position: fixed;
+      top: 20px;
+      right: 30px;
+      font-size: 2rem;
+      cursor: pointer;
+      color: #ff7777;
+    }
+
+    #helpModal footer {
+      text-align: center;
+      margin-top: 3rem;
+      font-size: 0.9em;
+      color: #aaa;
+    }
+
+    #helpModal a {
+      color: #00c2ff;
+    }
+
+    footer nav a {
+  color: #00c2ff;
+  text-decoration: none;
+  margin: 0 12px;
+  font-weight: bold;
+  font-size: 0.95em;
+  transition: color 0.3s, text-shadow 0.3s;
+}
+
+footer nav a:hover {
+  color: #00ffcc;
+  text-shadow: 0 0 6px #00ffcc;
+}
+
+#backToTop {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: #00c2ff;
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  font-size: 1.5em;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 0 10px #00c2ff;
+  z-index: 999;
+}
+
+@keyframes glow {
+  from { text-shadow: 0 0 10px #00ffcc, 0 0 20px #00ffcc; }
+  to { text-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff; }
+}
+
+h1 {
+  animation: glow 3s ease-in-out infinite alternate;
+}
+
+
+  </style>
+</head>
+<body>
+
+  <!-- INTRO LANDING SCREEN -->
+  <div id="intro" onclick="startApp()">
+    <h1>🚀 Blitz Server</h1>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div id="mainContent">
+    <h1>📂 Blitz Web Server</h1>
+
+    <div class="box">
+      <h2>🎵 Upload Audio File</h2>
+      <div class="form-row">
+        <input type="file" id="audioInput" accept="audio/*" />
+        <button onclick="uploadFile('audioInput')">Upload Audio</button>
+      </div>
+
+      <h2>📹 Upload Video File</h2>
+      <div class="form-row">
+        <input type="file" id="videoInput" accept="video/*" />
+        <button onclick="uploadFile('videoInput')">Upload Video</button>
+      </div>
+
+      <h2>📁 Upload Any File</h2>
+      <div class="form-row">
+        <input type="file" id="fileInput" />
+        <button onclick="uploadFile('fileInput')">Upload File</button>
+      </div>
+
+      <div class="form-row">
+        <button onclick="checkStatus()">🔄 Check Server Status</button>
+        <button id="toggleFilesBtn" onclick="toggleFiles()">📥 Show Uploaded Files</button>
+      </div>
+
+      <div id="status">🧵 Active Threads: --</div>
+      <div class="file-list" id="fileList"></div>
+    </div>
+
+    <footer>
+  Blitz Web Server &copy; 2025 | Designed with ❤️<br><br>
+  <nav>
+    <a href="#" onclick="goHome()">🏠 Home</a> |
+    <a href="#" onclick="openHelp()">❓ Manual</a> |
+    <a href="#" onclick="openSupport()">💬 Support</a>
+  </nav>
+</footer>
+
+  </div>
+
+  <!-- HELP MODAL -->
+  <div id="helpModal">
+    <div class="close-btn" onclick="closeHelp()">✖</div>
+    <h1>📘 Help - Blitz Web Server</h1>
+    <div class="section">
+      <h2>🔍 What is Blitz Server?</h2>
+      <ul>
+        <li>Upload audio, video, and other files</li>
+        <li>Download them anytime</li>
+        <li>Monitor active threads</li>
+      </ul>
+    </div>
+    <div class="section">
+      <h2>📤 How to Upload</h2>
+      <ul>
+        <li>Choose a file and click the matching upload button</li>
+        <li>Files are saved in <code>www/files/</code></li>
+      </ul>
+    </div>
+    <div class="section">
+      <h2>📥 How to Download</h2>
+      <ul>
+        <li>Click "Show Uploaded Files"</li>
+        <li>Click on any filename to download</li>
+      </ul>
+    </div>
+    <div class="section">
+      <h2>⚠️ Common Issues</h2>
+      <ul>
+        <li>Upload fails: check file size and server</li>
+        <li>Corrupted MP4: verify filename parsing in server code</li>
+        <li>404 errors: make sure files exist</li>
+      </ul>
+    </div>
+    <div class="section">
+      <h2>🛠️ Need Help?</h2>
+      <p>Contact the developer via <a href="https://github.com/Virajita28/multithreaded-webserver" target="_blank">GitHub</a></p>
+    </div>
+    <footer>Blitz Server Help &copy; 2025</footer>
+  </div>
+
+<script>
+  function startApp() {
+    document.getElementById("intro").style.opacity = 0;
+    setTimeout(() => {
+      document.getElementById("intro").style.display = "none";
+      document.getElementById("mainContent").classList.add("visible");
+    }, 1000);
+  }
+
+  function uploadFile(inputId) {
+    const input = document.getElementById(inputId);
+    const file = input.files[0];
+    if (!file) return alert("Please select a file.");
+    const formData = new FormData();
+    formData.append("file", file);
+    let endpoint = "/upload/file";
+    if (inputId === "audioInput") endpoint = "/upload/audio";
+    else if (inputId === "videoInput") endpoint = "/upload/video";
+
+    fetch(endpoint, { method: "POST", body: formData })
+      .then(res => res.text())
+      .then(text => alert("✅ " + text))
+      .catch(() => alert("❌ Upload failed"));
+  }
+
+  function checkStatus() {
+    fetch("/status")
+      .then(res => res.text())
+      .then(text => document.getElementById("status").innerText = "🧵 Active Threads: " + text);
+  }
+
+  let filesVisible = false;
+  function toggleFiles() {
+    const fileList = document.getElementById("fileList");
+    const btn = document.getElementById("toggleFilesBtn");
+    if (!filesVisible) {
+      fetch("/files/list")
+        .then(res => res.text())
+        .then(html => {
+          fileList.innerHTML = html;
+          fileList.style.display = "block";
+          btn.innerText = "❌ Hide Uploaded Files";
+          filesVisible = true;
+        });
+    } else {
+      fileList.style.display = "none";
+      btn.innerText = "📥 Show Uploaded Files";
+      filesVisible = false;
+    }
+  }
+
+  function downloadFile(filename) {
+    window.location.href = "/files/" + encodeURIComponent(filename);
+  }
+
+  function goHome() {
+  // Hide main content
+  document.getElementById("mainContent").classList.remove("visible");
+  // Show intro screen again
+  document.getElementById("intro").style.display = "flex";
+  document.getElementById("intro").style.opacity = 1;
+}
+
+  function openHelp() {
+    const helpWindow = window.open('', '_blank');
+    helpWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>📘 Help - Blitz Server</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            background: #101010;
+            color: #f0f0f0;
+            padding: 2rem;
+          }
+          h1 {
+            color: #00ffcc;
+            text-align: center;
+            margin-bottom: 2rem;
+          }
+          h2 {
+            color: #00c2ff;
+            margin-top: 1.5rem;
+            border-bottom: 1px solid #00ffcc;
+            padding-bottom: 5px;
+          }
+          ul {
+            list-style-type: none;
+            padding-left: 0;
+          }
+          ul li::before {
+            content: "✔ ";
+            color: #00ffcc;
+            margin-right: 0.5rem;
+          }
+          code {
+            background: #222;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #00ffcc;
+          }
+          a {
+            color: #00c2ff;
+          }
+          footer {
+            margin-top: 3rem;
+            font-size: 0.85em;
+            color: #aaa;
+            text-align: center;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>📘 Blitz Web Server - Help Guide</h1>
+
+        <h2>🚀 What is Blitz Server?</h2>
+        <ul>
+          <li>Upload audio, video, and other files</li>
+          <li>Download them anytime</li>
+          <li>Monitor active threads</li>
+        </ul>
+
+        <h2>📤 Uploading Files</h2>
+        <ul>
+          <li>Use the correct upload button for file type</li>
+          <li>All files are stored in <code>www/files/</code></li>
+        </ul>
+
+        <h2>📥 Downloading Files</h2>
+        <ul>
+          <li>Click "Show Uploaded Files" to see available files</li>
+          <li>Click any filename to download</li>
+        </ul>
+
+        <h2>⚠️ Common Issues</h2>
+        <ul>
+          <li>Upload fails: file too big or unsupported format</li>
+          <li>MP4 corrupted: check server-side filename parsing</li>
+          <li>404: file not found on server</li>
+        </ul>
+
+        <h2>💬 Support</h2>
+        <p>Visit <a href="https://github.com/Virajita28/multithreaded-webserver" target="_blank">GitHub Support</a></p>
+
+        <footer>Blitz Server Help &copy; 2025</footer>
+      </body>
+      </html>
+    `);
+    helpWindow.document.close();
+  }
+
+  function openSupport() {
+    window.open("https://github.com/Virajita28/multithreaded-webserver", "_blank");
+  }
+</script>
+<button id="backToTop" onclick="goHome()" title="Back to Top">⬆</button>
+
+</body>
+</html>
